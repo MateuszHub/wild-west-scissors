@@ -41,18 +41,70 @@
       { choice: "scissors", x: 380, y: 300, width: 120, height: 50 }
     ];
 
-    let resultText = "Wybierz swój ruch";
+    let resultText = "Kliknij aby rozpocząć";
+    let timeLeft = 5;
+    let timerId = null;
+    let gameState = "waiting"; // waiting, active, over
+
+    function startGame() {
+      gameState = "active";
+      timeLeft = 5;
+      resultText = "Wybierz swój ruch";
+      startTimer();
+      draw();
+    }
+
+    function startTimer() {
+      if (timerId) clearInterval(timerId);
+      timerId = setInterval(() => {
+        timeLeft--;
+        if (timeLeft <= 0) {
+          endGame("Czas minął! Przegrałeś!");
+        } else {
+          draw();
+        }
+      }, 1000);
+    }
+
+    function endGame(message) {
+      clearInterval(timerId);
+      gameState = "over";
+      resultText = message;
+      draw();
+    }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Tekst wyniku
+      if (gameState === "waiting") {
+        ctx.fillStyle = "#ecf0f1";
+        ctx.font = "24px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(resultText, canvas.width / 2, 80);
+        ctx.font = "20px Arial";
+        ctx.fillText("Kliknij aby rozpocząć", canvas.width / 2, 120);
+        return;
+      }
+
+      if (gameState === "over") {
+        ctx.fillStyle = "#ecf0f1";
+        ctx.font = "24px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(resultText, canvas.width / 2, 80);
+        ctx.font = "20px Arial";
+        ctx.fillText("Kliknij aby zagrać ponownie", canvas.width / 2, 120);
+        return;
+      }
+
+      // Active game state
       ctx.fillStyle = "#ecf0f1";
       ctx.font = "24px Arial";
       ctx.textAlign = "center";
       ctx.fillText(resultText, canvas.width / 2, 80);
+      
+      ctx.font = "20px Arial";
+      ctx.fillText(`Pozostały czas: ${timeLeft}s`, canvas.width / 2, 120);
 
-      // Przyciski
       buttons.forEach(btn => {
         ctx.fillStyle = "#3498db";
         ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
@@ -68,6 +120,7 @@
     }
 
     function getResult(player, computer) {
+      clearInterval(timerId);
       if (player === computer) return "Remis!";
       if (
         (player === "rock" && computer === "scissors") ||
@@ -81,6 +134,11 @@
     }
 
     canvas.addEventListener("click", (e) => {
+      if (gameState === "waiting" || gameState === "over") {
+        startGame();
+        return;
+      }
+
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
@@ -96,12 +154,12 @@
           const computer = getComputerChoice();
           const result = getResult(player, computer);
           resultText = `Ty: ${labels[player]}, Komputer: ${labels[computer]} — ${result}`;
-          draw();
+          endGame(resultText);
         }
       }
     });
 
-    draw(); // rysujemy początkowo
+    draw();
   </script>
 </body>
 </html>
