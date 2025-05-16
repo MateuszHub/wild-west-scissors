@@ -35,23 +35,55 @@
       scissors: "✂️ Nożyce"
     };
 
-    const buttons = [
-      { choice: "rock", x: 100, y: 300, width: 120, height: 50 },
-      { choice: "paper", x: 240, y: 300, width: 120, height: 50 },
-      { choice: "scissors", x: 380, y: 300, width: 120, height: 50 }
+    // Player buttons at bottom
+    const playerButtons = [
+      { choice: "rock", x: 100, y: 320, width: 120, height: 50 },
+      { choice: "paper", x: 240, y: 320, width: 120, height: 50 },
+      { choice: "scissors", x: 380, y: 320, width: 120, height: 50 }
+    ];
+
+    // Computer indicators at top
+    const computerButtons = [
+      { choice: "rock", x: 100, y: 50, width: 120, height: 50 },
+      { choice: "paper", x: 240, y: 50, width: 120, height: 50 },
+      { choice: "scissors", x: 380, y: 50, width: 120, height: 50 }
     ];
 
     let resultText = "Kliknij aby rozpocząć";
     let timeLeft = 5;
     let timerId = null;
-    let gameState = "waiting"; // waiting, active, over
+    let gameState = "waiting"; // waiting, active, animating, over
+    let computerChoice = null;
+    let animationInterval = null;
 
     function startGame() {
       gameState = "active";
       timeLeft = 5;
-      resultText = "Wybierz swój ruch";
+      resultText = "Wybierz swój ruch (1-2-3)";
       startTimer();
+      startComputerAnimation();
       draw();
+    }
+
+    function startComputerAnimation() {
+      let frame = 0;
+      animationInterval = setInterval(() => {
+        computerChoice = choices[frame % choices.length];
+        frame++;
+        draw();
+      }, 200);
+    }
+
+    function stopComputerAnimation(playerChoice) {
+      clearInterval(animationInterval);
+      computerChoice = getComputerChoice();
+      draw();
+      
+      setTimeout(() => {
+        const result = getResult(playerChoice, computerChoice);
+        resultText = `Ty: ${labels[playerChoice]}, Komputer: ${labels[computerChoice]} — ${result}`;
+        endGame(resultText);
+      }, 1000);
     }
 
     function startTimer() {
@@ -76,42 +108,58 @@
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      if (gameState === "waiting") {
-        ctx.fillStyle = "#ecf0f1";
-        ctx.font = "24px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(resultText, canvas.width / 2, 80);
-        ctx.font = "20px Arial";
-        ctx.fillText("Kliknij aby rozpocząć", canvas.width / 2, 120);
-        return;
+      // Draw computer section at top
+      ctx.fillStyle = "#ecf0f1";
+      ctx.font = "20px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Komputer", canvas.width / 2, 30);
+
+      if (gameState === "animating" || gameState === "active") {
+        computerButtons.forEach(btn => {
+          const isActive = computerChoice === btn.choice;
+          ctx.fillStyle = isActive ? "#e74c3c" : "#2c3e50";
+          ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
+          ctx.fillStyle = "white";
+          ctx.font = "18px Arial";
+          ctx.fillText(labels[btn.choice], btn.x + btn.width / 2, btn.y + 32);
+        });
       }
 
-      if (gameState === "over") {
-        ctx.fillStyle = "#ecf0f1";
-        ctx.font = "24px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(resultText, canvas.width / 2, 80);
-        ctx.font = "20px Arial";
-        ctx.fillText("Kliknij aby zagrać ponownie", canvas.width / 2, 120);
-        return;
-      }
-
-      // Active game state
+      // Draw result in middle
       ctx.fillStyle = "#ecf0f1";
       ctx.font = "24px Arial";
       ctx.textAlign = "center";
-      ctx.fillText(resultText, canvas.width / 2, 80);
+      ctx.fillText(resultText, canvas.width / 2, 180);
       
-      ctx.font = "20px Arial";
-      ctx.fillText(`Pozostały czas: ${timeLeft}s`, canvas.width / 2, 120);
+      if (gameState === "active") {
+        ctx.font = "20px Arial";
+        ctx.fillText(`Pozostały czas: ${timeLeft}s`, canvas.width / 2, 220);
+      }
 
-      buttons.forEach(btn => {
+      // Draw player section at bottom
+      ctx.fillStyle = "#ecf0f1";
+      ctx.font = "20px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Twój wybór", canvas.width / 2, 300);
+
+      playerButtons.forEach(btn => {
         ctx.fillStyle = "#3498db";
         ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
         ctx.fillStyle = "white";
         ctx.font = "18px Arial";
         ctx.fillText(labels[btn.choice], btn.x + btn.width / 2, btn.y + 32);
       });
+
+      if (gameState === "waiting") {
+        ctx.fillStyle = "#ecf0f1";
+        ctx.font = "24px Arial";
+        ctx.fillText("Kliknij aby rozpocząć", canvas.width / 2, 180);
+      }
+
+      if (gameState === "over") {
+        ctx.font = "20px Arial";
+        ctx.fillText("Kliknij aby zagrać ponownie", canvas.width / 2, 220);
+      }
     }
 
     function getComputerChoice() {
@@ -139,22 +187,36 @@
         return;
       }
 
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
+      if (gameState === "active") {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
 
-      for (let btn of buttons) {
-        if (
-          mouseX >= btn.x &&
-          mouseX <= btn.x + btn.width &&
-          mouseY >= btn.y &&
-          mouseY <= btn.y + btn.height
-        ) {
-          const player = btn.choice;
-          const computer = getComputerChoice();
-          const result = getResult(player, computer);
-          resultText = `Ty: ${labels[player]}, Komputer: ${labels[computer]} — ${result}`;
-          endGame(resultText);
+        for (let btn of playerButtons) {
+          if (
+            mouseX >= btn.x &&
+            mouseX <= btn.x + btn.width &&
+            mouseY >= btn.y &&
+            mouseY <= btn.y + btn.height
+          ) {
+            gameState = "animating";
+            stopComputerAnimation(btn.choice);
+          }
+        }
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (gameState === "active") {
+        if (e.key === "1") {
+          gameState = "animating";
+          stopComputerAnimation("rock");
+        } else if (e.key === "2") {
+          gameState = "animating";
+          stopComputerAnimation("paper");
+        } else if (e.key === "3") {
+          gameState = "animating";
+          stopComputerAnimation("scissors");
         }
       }
     });
