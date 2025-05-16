@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Kamień, Papier, Nożyce - Canvas</title>
+  <style>
+    body {
+      background: #1e1e1e;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    canvas {
+      display: block;
+      margin: 20px auto;
+      background: #2c3e50;
+      border: 2px solid #34495e;
+    }
+  </style>
+</head>
+<body>
+  <h1>Kamień, Papier, Nożyce (Canvas)</h1>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const choices = ["rock", "paper", "scissors"];
+    const labels = {
+      rock: "🪨 Kamień",
+      paper: "📄 Papier",
+      scissors: "✂️ Nożyce"
+    };
+
+    const buttons = [
+      { choice: "rock", x: 100, y: 300, width: 120, height: 50 },
+      { choice: "paper", x: 240, y: 300, width: 120, height: 50 },
+      { choice: "scissors", x: 380, y: 300, width: 120, height: 50 }
+    ];
+
+    let resultText = "Wybierz swój ruch";
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Tekst wyniku
+      ctx.fillStyle = "#ecf0f1";
+      ctx.font = "24px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(resultText, canvas.width / 2, 80);
+
+      // Przyciski
+      buttons.forEach(btn => {
+        ctx.fillStyle = "#3498db";
+        ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
+        ctx.fillStyle = "white";
+        ctx.font = "18px Arial";
+        ctx.fillText(labels[btn.choice], btn.x + btn.width / 2, btn.y + 32);
+      });
+    }
+
+    function getComputerChoice() {
+      const index = Math.floor(Math.random() * choices.length);
+      return choices[index];
+    }
+
+    function getResult(player, computer) {
+      if (player === computer) return "Remis!";
+      if (
+        (player === "rock" && computer === "scissors") ||
+        (player === "paper" && computer === "rock") ||
+        (player === "scissors" && computer === "paper")
+      ) {
+        return "Wygrałeś!";
+      } else {
+        return "Przegrałeś!";
+      }
+    }
+
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      for (let btn of buttons) {
+        if (
+          mouseX >= btn.x &&
+          mouseX <= btn.x + btn.width &&
+          mouseY >= btn.y &&
+          mouseY <= btn.y + btn.height
+        ) {
+          const player = btn.choice;
+          const computer = getComputerChoice();
+          const result = getResult(player, computer);
+          resultText = `Ty: ${labels[player]}, Komputer: ${labels[computer]} — ${result}`;
+          draw();
+        }
+      }
+    });
+
+    draw(); // rysujemy początkowo
+  </script>
+</body>
+</html>
