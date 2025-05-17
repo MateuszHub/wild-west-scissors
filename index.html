@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Kamień, Papier, Nożyce - Canvas</title>
+  <title>Wild West Scissors</title>
   <style>
     body {
       background: #1e1e1e;
@@ -21,7 +21,7 @@
   </style>
 </head>
 <body>
-  <h1>Kamień, Papier, Nożyce (Canvas)</h1>
+  <h1>Wild West Scissors</h1>
   <canvas id="gameCanvas" width="600" height="400"></canvas>
 
   <script>
@@ -33,6 +33,14 @@
       rock: "🪨 Kamień",
       paper: "📄 Papier",
       scissors: "✂️ Nożyce"
+    };
+
+    // Game states
+    const STATES = {
+      START: "start",
+      BATTLE: "battle",
+      POST_BATTLE: "postBattle",
+      OVER: "over"
     };
 
     // Player buttons at bottom
@@ -49,17 +57,34 @@
       { choice: "scissors", x: 380, y: 50, width: 120, height: 50 }
     ];
 
-    let resultText = "Kliknij aby rozpocząć";
+    // Post-battle options
+    const postBattleButtons = [
+      { action: "next", x: 100, y: 200, width: 120, height: 50, label: "Next Battle" },
+      { action: "heal", x: 240, y: 200, width: 120, height: 50, label: "Heal Up" },
+      { action: "shop", x: 380, y: 200, width: 120, height: 50, label: "Go to Shop" }
+    ];
+
+    // Enemy queue with varying health
+    const enemies = [
+      { name: "Bandit", health: 15 },
+      { name: "Outlaw", health: 25 },
+      { name: "Gunslinger", health: 30 }
+    ];
+
+    let gameState = STATES.START;
+    let resultText = "";
     let timeLeft = 5;
     let timerId = null;
-    let gameState = "waiting"; // waiting, active, animating, over
     let computerChoice = null;
     let animationInterval = null;
+    let playerHealth = 100;
+    let currentEnemy = 0;
+    let round = 1;
 
     function startGame() {
-      gameState = "active";
+      gameState = STATES.BATTLE;
       timeLeft = 5;
-      resultText = "Wybierz swój ruch (1-2-3)";
+      resultText = `Round ${round}: ${enemies[currentEnemy].name} (${enemies[currentEnemy].health} HP) - Wybierz ruch (1-2-3)`;
       startTimer();
       startComputerAnimation();
       draw();
@@ -74,16 +99,33 @@
       }, 200);
     }
 
-    function stopComputerAnimation(playerChoice) {
+    function completeBattle(playerChoice) {
       clearInterval(animationInterval);
       computerChoice = getComputerChoice();
       draw();
       
       setTimeout(() => {
         const result = getResult(playerChoice, computerChoice);
-        resultText = `Ty: ${labels[playerChoice]}, Komputer: ${labels[computerChoice]} — ${result}`;
-        endGame(resultText);
+        updateHealth(result);
+        resultText = `Round ${round}: Ty: ${labels[playerChoice]}, ${enemies[currentEnemy].name}: ${labels[computerChoice]} — ${result}`;
+        gameState = STATES.POST_BATTLE;
+        draw();
       }, 1000);
+    }
+
+    function updateHealth(result) {
+      if (result === "Przegrałeś!") {
+        playerHealth -= 25;
+      } else if (result === "Wygrałeś!") {
+        enemies[currentEnemy].health -= 10;
+        if (enemies[currentEnemy].health <= 0) {
+          currentEnemy++;
+          if (currentEnemy >= enemies.length) {
+            gameState = STATES.OVER;
+            resultText = "Pokonałeś wszystkich przeciwników!";
+          }
+        }
+      }
     }
 
     function startTimer() {
@@ -91,39 +133,71 @@
       timerId = setInterval(() => {
         timeLeft--;
         if (timeLeft <= 0) {
-          endGame("Czas minął! Przegrałeś!");
+          completeBattle(null);
         } else {
           draw();
         }
       }, 1000);
     }
 
-    function endGame(message) {
-      clearInterval(timerId);
-      gameState = "over";
-      resultText = message;
-      draw();
-    }
-
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      // Draw health bars
+      drawHealthBar(50, 20, 200, 20, playerHealth, "#2ecc71", "Player");
+      if (currentEnemy < enemies.length) {
+        drawHealthBar(350, 20, 200, 20, enemies[currentEnemy].health, "#e74c3c", enemies[currentEnemy].name);
+      }
+
+      if (gameState === STATES.START) {
+        drawStartScreen();
+      } 
+      else if (gameState === STATES.BATTLE) {
+        drawBattleScreen();
+      }
+      else if (gameState === STATES.POST_BATTLE) {
+        drawPostBattleScreen();
+      }
+      else if (gameState === STATES.OVER) {
+        drawGameOverScreen();
+      }
+    }
+
+    function drawStartScreen() {
+      ctx.fillStyle = "#ecf0f1";
+      ctx.font = "24px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Wild West Scissors", canvas.width / 2, 80);
+      
+      ctx.font = "18px Arial";
+      ctx.fillText("Zasady gry:", canvas.width / 2, 120);
+      ctx.fillText("1. Wybierz kamień, papier lub nożyce", canvas.width / 2, 150);
+      ctx.fillText("2. Pokonaj 3 przeciwników", canvas.width / 2, 180);
+      ctx.fillText("3. Każde zwycięstwo zadaje 10 obrażeń", canvas.width / 2, 210);
+
+      // Start button
+      ctx.fillStyle = "#3498db";
+      ctx.fillRect(240, 250, 120, 50);
+      ctx.fillStyle = "white";
+      ctx.font = "18px Arial";
+      ctx.fillText("Start Game", 300, 282);
+    }
+
+    function drawBattleScreen() {
       // Draw computer section at top
       ctx.fillStyle = "#ecf0f1";
       ctx.font = "20px Arial";
       ctx.textAlign = "center";
-      ctx.fillText("Komputer", canvas.width / 2, 30);
+      ctx.fillText(enemies[currentEnemy].name, canvas.width / 2, 30);
 
-      if (gameState === "animating" || gameState === "active") {
-        computerButtons.forEach(btn => {
-          const isActive = computerChoice === btn.choice;
-          ctx.fillStyle = isActive ? "#e74c3c" : "#2c3e50";
-          ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
-          ctx.fillStyle = "white";
-          ctx.font = "18px Arial";
-          ctx.fillText(labels[btn.choice], btn.x + btn.width / 2, btn.y + 32);
-        });
-      }
+      computerButtons.forEach(btn => {
+        const isActive = computerChoice === btn.choice;
+        ctx.fillStyle = isActive ? "#e74c3c" : "#2c3e50";
+        ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
+        ctx.fillStyle = "white";
+        ctx.font = "18px Arial";
+        ctx.fillText(labels[btn.choice], btn.x + btn.width / 2, btn.y + 32);
+      });
 
       // Draw result in middle
       ctx.fillStyle = "#ecf0f1";
@@ -131,10 +205,8 @@
       ctx.textAlign = "center";
       ctx.fillText(resultText, canvas.width / 2, 180);
       
-      if (gameState === "active") {
-        ctx.font = "20px Arial";
-        ctx.fillText(`Pozostały czas: ${timeLeft}s`, canvas.width / 2, 220);
-      }
+      ctx.font = "20px Arial";
+      ctx.fillText(`Pozostały czas: ${timeLeft}s`, canvas.width / 2, 220);
 
       // Draw player section at bottom
       ctx.fillStyle = "#ecf0f1";
@@ -149,17 +221,51 @@
         ctx.font = "18px Arial";
         ctx.fillText(labels[btn.choice], btn.x + btn.width / 2, btn.y + 32);
       });
+    }
 
-      if (gameState === "waiting") {
-        ctx.fillStyle = "#ecf0f1";
-        ctx.font = "24px Arial";
-        ctx.fillText("Kliknij aby rozpocząć", canvas.width / 2, 180);
+    function drawPostBattleScreen() {
+      ctx.fillStyle = "#ecf0f1";
+      ctx.font = "24px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(resultText, canvas.width / 2, 100);
+      
+      ctx.font = "20px Arial";
+      ctx.fillText(`Player Health: ${playerHealth}%`, canvas.width / 2, 140);
+      if (currentEnemy < enemies.length) {
+        ctx.fillText(`${enemies[currentEnemy].name} Health: ${enemies[currentEnemy].health}%`, canvas.width / 2, 170);
       }
 
-      if (gameState === "over") {
-        ctx.font = "20px Arial";
-        ctx.fillText("Kliknij aby zagrać ponownie", canvas.width / 2, 220);
-      }
+      // Post-battle options
+      postBattleButtons.forEach(btn => {
+        ctx.fillStyle = "#3498db";
+        ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
+        ctx.fillStyle = "white";
+        ctx.font = "16px Arial";
+        ctx.fillText(btn.label, btn.x + btn.width / 2, btn.y + 32);
+      });
+    }
+
+    function drawGameOverScreen() {
+      ctx.fillStyle = "#ecf0f1";
+      ctx.font = "24px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(resultText, canvas.width / 2, 100);
+      
+      ctx.font = "20px Arial";
+      ctx.fillText("Kliknij aby zagrać ponownie", canvas.width / 2, 140);
+    }
+
+    function drawHealthBar(x, y, width, height, value, color, label) {
+      ctx.fillStyle = "#333";
+      ctx.fillRect(x, y, width, height);
+      
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, width * (value / 100), height);
+      
+      ctx.fillStyle = "white";
+      ctx.font = "14px Arial";
+      ctx.textAlign = "left";
+      ctx.fillText(`${label}: ${value}%`, x + 5, y + 15);
     }
 
     function getComputerChoice() {
@@ -169,6 +275,7 @@
 
     function getResult(player, computer) {
       clearInterval(timerId);
+      if (!player) return "Czas minął! Przegrałeś!";
       if (player === computer) return "Remis!";
       if (
         (player === "rock" && computer === "scissors") ||
@@ -181,17 +288,33 @@
       }
     }
 
-    canvas.addEventListener("click", (e) => {
-      if (gameState === "waiting" || gameState === "over") {
+    function handlePostBattleChoice(choice) {
+      if (choice === "next") {
+        round++;
         startGame();
-        return;
+      } else if (choice === "heal") {
+        playerHealth = Math.min(100, playerHealth + 30);
+        round++;
+        startGame();
+      } else if (choice === "shop") {
+        // TODO: Implement shop
+        round++;
+        startGame();
       }
+    }
 
-      if (gameState === "active") {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
 
+      if (gameState === STATES.START) {
+        // Check start button click
+        if (mouseX >= 240 && mouseX <= 360 && mouseY >= 250 && mouseY <= 300) {
+          startGame();
+        }
+      }
+      else if (gameState === STATES.BATTLE) {
         for (let btn of playerButtons) {
           if (
             mouseX >= btn.x &&
@@ -200,23 +323,41 @@
             mouseY <= btn.y + btn.height
           ) {
             gameState = "animating";
-            stopComputerAnimation(btn.choice);
+            completeBattle(btn.choice);
           }
         }
+      }
+      else if (gameState === STATES.POST_BATTLE) {
+        for (let btn of postBattleButtons) {
+          if (
+            mouseX >= btn.x &&
+            mouseX <= btn.x + btn.width &&
+            mouseY >= btn.y &&
+            mouseY <= btn.y + btn.height
+          ) {
+            handlePostBattleChoice(btn.action);
+          }
+        }
+      }
+      else if (gameState === STATES.OVER) {
+        // Reset game
+        gameState = STATES.START;
+        playerHealth = 100;
+        currentEnemy = 0;
+        round = 1;
+        enemies.forEach(enemy => enemy.health = [15, 25, 30][enemies.indexOf(enemy)]);
+        draw();
       }
     });
 
     document.addEventListener("keydown", (e) => {
-      if (gameState === "active") {
+      if (gameState === STATES.BATTLE) {
         if (e.key === "1") {
-          gameState = "animating";
-          stopComputerAnimation("rock");
+          completeBattle("rock");
         } else if (e.key === "2") {
-          gameState = "animating";
-          stopComputerAnimation("paper");
+          completeBattle("paper");
         } else if (e.key === "3") {
-          gameState = "animating";
-          stopComputerAnimation("scissors");
+          completeBattle("scissors");
         }
       }
     });
