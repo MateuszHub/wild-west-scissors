@@ -79,12 +79,11 @@
     let animationInterval = null;
     let playerHealth = 100;
     let currentEnemy = 0;
-    let round = 1;
 
     function startGame() {
       gameState = STATES.BATTLE;
       timeLeft = 5;
-      resultText = `Round ${round}: ${enemies[currentEnemy].name} (${enemies[currentEnemy].health} HP) - Wybierz ruch (1-2-3)`;
+      resultText = `Battle vs ${enemies[currentEnemy].name} (${enemies[currentEnemy].health} HP) - Wybierz ruch (1-2-3)`;
       startTimer();
       startComputerAnimation();
       draw();
@@ -107,8 +106,24 @@
       setTimeout(() => {
         const result = getResult(playerChoice, computerChoice);
         updateHealth(result);
-        resultText = `Round ${round}: Ty: ${labels[playerChoice]}, ${enemies[currentEnemy].name}: ${labels[computerChoice]} — ${result}`;
-        gameState = STATES.POST_BATTLE;
+        resultText = `Ty: ${labels[playerChoice]}, ${enemies[currentEnemy].name}: ${labels[computerChoice]} — ${result}`;
+        
+        if (playerHealth <= 0) {
+          gameState = STATES.OVER;
+          resultText = "Game Over! Przegrałeś!";
+        } else if (enemies[currentEnemy].health <= 0) {
+          currentEnemy++;
+          if (currentEnemy >= enemies.length) {
+            gameState = STATES.OVER;
+            resultText = "Pokonałeś wszystkich przeciwników!";
+          } else {
+            gameState = STATES.POST_BATTLE;
+          }
+        } else {
+          // Continue battle
+          startGame();
+          return;
+        }
         draw();
       }, 1000);
     }
@@ -118,13 +133,6 @@
         playerHealth -= 25;
       } else if (result === "Wygrałeś!") {
         enemies[currentEnemy].health -= 10;
-        if (enemies[currentEnemy].health <= 0) {
-          currentEnemy++;
-          if (currentEnemy >= enemies.length) {
-            gameState = STATES.OVER;
-            resultText = "Pokonałeś wszystkich przeciwników!";
-          }
-        }
       }
     }
 
@@ -227,13 +235,11 @@
       ctx.fillStyle = "#ecf0f1";
       ctx.font = "24px Arial";
       ctx.textAlign = "center";
-      ctx.fillText(resultText, canvas.width / 2, 100);
+      ctx.fillText(`Pokonałeś ${enemies[currentEnemy-1].name}!`, canvas.width / 2, 100);
       
       ctx.font = "20px Arial";
       ctx.fillText(`Player Health: ${playerHealth}%`, canvas.width / 2, 140);
-      if (currentEnemy < enemies.length) {
-        ctx.fillText(`${enemies[currentEnemy].name} Health: ${enemies[currentEnemy].health}%`, canvas.width / 2, 170);
-      }
+      ctx.fillText(`Następny przeciwnik: ${enemies[currentEnemy].name}`, canvas.width / 2, 170);
 
       // Post-battle options
       postBattleButtons.forEach(btn => {
@@ -290,15 +296,12 @@
 
     function handlePostBattleChoice(choice) {
       if (choice === "next") {
-        round++;
         startGame();
       } else if (choice === "heal") {
         playerHealth = Math.min(100, playerHealth + 30);
-        round++;
         startGame();
       } else if (choice === "shop") {
         // TODO: Implement shop
-        round++;
         startGame();
       }
     }
@@ -344,7 +347,6 @@
         gameState = STATES.START;
         playerHealth = 100;
         currentEnemy = 0;
-        round = 1;
         enemies.forEach(enemy => enemy.health = [15, 25, 30][enemies.indexOf(enemy)]);
         draw();
       }
