@@ -51,75 +51,129 @@
     let timeLeft = 5;
     let timerId = null;
     let computerChoice = null;
-    let animationInterval = null;
     let playerHealth = 100;
     let currentEnemy = 0;
+    let currentRound = 1;
+    let roundsToWin = 0;
+    let roundStartTime;
+    let computerSelection;
+    let playerSelection;
+
+    function getCounterMove(move) {
+        if (move === "rock") return "paper";
+        if (move === "paper") return "scissors";
+        return "rock";
+    }
 
     function startGame() {
       gameState = STATES.BATTLE;
       timeLeft = 5;
-      resultText = `Battle vs ${enemies[currentEnemy].name} (${enemies[currentEnemy].health} HP) - Wybierz ruch (1-2-3)`;
+      playerSelection = null;
+      computerChoice = null;
+      currentRound = 1;
+      roundsToWin = Math.ceil(enemies[currentEnemy].health / 10);
+      resultText = `Battle vs ${enemies[currentEnemy].name} (Round ${currentRound}/${roundsToWin}) - Wybierz ruch (1-2-3)`;
       startTimer();
-      startComputerAnimation();
+      startRound();
       draw();
     }
 
-    function startComputerAnimation() {
-      let frame = 0;
-      animationInterval = setInterval(() => {
-        computerChoice = battle.choices[frame % battle.choices.length];
-        frame++;
-        draw();
-      }, 200);
+    function startRound() {
+      roundStartTime = Date.now();
+      resultText = ""; // Clear previous result
+      playerSelection = null;
+      computerChoice = null;
+      computerSelection = null;
+      const enemyType = battle.getEnemyType(enemies[currentEnemy].name);
+      computerSelection = battle.getComputerChoice(enemyType, timeLeft);
+      
+      // Schedule computer's selection to happen at random time during the 5s timer
+      const selectionTime = Math.min(computerSelection.selectionTime, 5000);
+      setTimeout(() => {
+        computerChoice = computerSelection.choice;
+        if (computerChoice) {
+          // Animate through all choices before landing on final selection
+          const choices = ["rock", "paper", "scissors"];
+          let animIndex = 0;
+          const animInterval = setInterval(() => {
+            computerChoice = choices[animIndex % choices.length];
+            draw();
+            animIndex++;
+            if (animIndex > 6) { // Cycle through choices twice
+              clearInterval(animInterval);
+              computerChoice = computerSelection.choice;
+              draw();
+            }
+          }, 50); // Faster animation (50ms instead of 150ms)
+        }
+      }, selectionTime);
+
+      // Start 5s timer
+      startTimer();
     }
 
-    function completeBattle(playerChoice) {
-      clearInterval(animationInterval);
-      computerChoice = battle.getComputerChoice();
+    function endRound() {
+      clearInterval(timerId);
+      let result;
+      if (!playerSelection) {
+        result = "Czas minął! Przegrałeś!";
+      } else if (!computerChoice) {
+        result = "Wygrałeś! (Przeciwnik nie wybrał ruchu)";
+      } else {
+        result = battle.getResult(playerSelection.choice, computerChoice);
+      }
+      
+      updateHealth(result);
+      
+      // Always show results for 1 second
+      const cpuMove = computerChoice ? battle.labels[computerChoice] : "Nic nie wybrał";
+      resultText = `Ty: ${battle.labels[playerSelection?.choice || ""]}, ${enemies[currentEnemy].name}: ${cpuMove} — ${result}`;
       draw();
       
       setTimeout(() => {
-        const result = battle.getResult(playerChoice, computerChoice);
-        updateHealth(result);
-        resultText = `Ty: ${battle.labels[playerChoice]}, ${enemies[currentEnemy].name}: ${battle.labels[computerChoice]} — ${result}`;
-        
         if (playerHealth <= 0) {
           gameState = STATES.OVER;
           resultText = "Game Over! Przegrałeś!";
+          draw();
         } else if (enemies[currentEnemy].health <= 0) {
           currentEnemy++;
           if (currentEnemy >= enemies.length) {
             gameState = STATES.OVER;
             resultText = "Pokonałeś wszystkich przeciwników!";
+            draw();
           } else {
             gameState = STATES.POST_BATTLE;
+            draw();
           }
-        } else {
-          // Continue battle
-          startGame();
-          return;
+        } else if (enemies[currentEnemy].health > 0) {
+          // Start fresh round after results if enemy still has health
+          playerSelection = null;
+          computerChoice = null;
+          computerSelection = null;
+          currentRound++;
+          resultText = `Battle vs ${enemies[currentEnemy].name} (Round ${currentRound}/${roundsToWin}) - Wybierz ruch (1-2-3)`;
+          startRound();
         }
-        draw();
       }, 1000);
     }
 
     function updateHealth(result) {
-      if (result === "Przegrałeś!") {
-        playerHealth -= 25;
-      } else if (result === "Wygrałeś!") {
-        enemies[currentEnemy].health -= 10;
+      if (result === "Przegrałeś!" && computerChoice) {
+        playerHealth -= computerSelection?.damage || 25;
+      } else if (result.startsWith("Wygrałeś!") && playerSelection) {
+        enemies[currentEnemy].health -= 10; // Player always deals 10 damage
       }
     }
 
     function startTimer() {
       if (timerId) clearInterval(timerId);
+      timeLeft = 5;
       timerId = setInterval(() => {
         timeLeft--;
         if (timeLeft <= 0) {
-          completeBattle(null);
-        } else {
-          draw();
+          endRound();
         }
+        draw();
       }, 1000);
     }
 
@@ -183,10 +237,16 @@
         }
       }
       else if (gameState === STATES.BATTLE) {
-        const playerChoice = battle.handlePlayerChoice(mouseX, mouseY);
-        if (playerChoice) {
-          gameState = "animating";
-          completeBattle(playerChoice);
+        const choice = battle.handlePlayerChoice(mouseX, mouseY);
+        if (choice) {
+          playerSelection = {
+            choice: choice.choice,
+            time: Date.now()
+          };
+          // If computer has already selected or timer ran out, complete the round
+          if (computerChoice || timeLeft <= 0) {
+            endRound();
+          }
         }
       }
       else if (gameState === STATES.POST_BATTLE) {
@@ -209,12 +269,21 @@
 
     document.addEventListener("keydown", (e) => {
       if (gameState === STATES.BATTLE) {
-        if (e.key === "1") {
-          completeBattle("rock");
-        } else if (e.key === "2") {
-          completeBattle("paper");
-        } else if (e.key === "3") {
-          completeBattle("scissors");
+        const choices = {
+          "1": "rock",
+          "2": "paper", 
+          "3": "scissors"
+        };
+        if (choices[e.key]) {
+          playerSelection = {
+            choice: choices[e.key],
+            time: Date.now()
+          };
+          // If computer has already selected or timer ran out, complete the round
+          // If computer has already selected or timer ran out, complete the round
+          if (computerChoice || timeLeft <= 0) {
+            endRound();
+          }
         }
       }
     });

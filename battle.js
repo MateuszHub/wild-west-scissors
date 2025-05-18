@@ -26,14 +26,30 @@ const battle = {
         ctx.textAlign = "center";
         ctx.fillText(enemy.name, canvas.width / 2, 30);
 
-        this.computerButtons.forEach(btn => {
-            const isActive = computerChoice === btn.choice;
-            ctx.fillStyle = isActive ? "#e74c3c" : "#2c3e50";
-            ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
-            ctx.fillStyle = "white";
-            ctx.font = "18px Arial";
-            ctx.fillText(this.labels[btn.choice], btn.x + btn.width / 2, btn.y + 32);
-        });
+        // Show cycling animation when enemy is choosing
+        if (!computerChoice) {
+            const choices = ["rock", "paper", "scissors"];
+            const animIndex = Math.floor(Date.now() / 200) % choices.length;
+            const animChoice = choices[animIndex];
+            
+            this.computerButtons.forEach(btn => {
+                const isAnimating = btn.choice === animChoice;
+                ctx.fillStyle = isAnimating ? "#7f8c8d" : "#2c3e50";
+                ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
+                ctx.fillStyle = "white";
+                ctx.font = "18px Arial";
+                ctx.fillText(this.labels[btn.choice], btn.x + btn.width / 2, btn.y + 32);
+            });
+        } else {
+            // Show selected choice
+            this.computerButtons.forEach(btn => {
+                ctx.fillStyle = computerChoice === btn.choice ? "#e74c3c" : "#2c3e50";
+                ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
+                ctx.fillStyle = "white";
+                ctx.font = "18px Arial";
+                ctx.fillText(this.labels[btn.choice], btn.x + btn.width / 2, btn.y + 32);
+            });
+        }
 
         // Draw result in middle
         ctx.fillStyle = "#ecf0f1";
@@ -59,9 +75,15 @@ const battle = {
         });
     },
 
-    getComputerChoice: function() {
-        const index = Math.floor(Math.random() * this.choices.length);
-        return this.choices[index];
+    getComputerChoice: function(enemyType, timeLeft) {
+        const enemy = enemyTypes[enemyType.toLowerCase()];
+        const move = enemy.selectMove(timeLeft);
+        return {
+            choice: move?.move || null,
+            damage: move?.damage || 0,
+            taunt: move?.taunt || "",
+            selectionTime: move ? 0 : 100 // Small delay if no move yet
+        };
     },
 
     getResult: function(player, computer) {
@@ -86,9 +108,16 @@ const battle = {
                 mouseY >= btn.y &&
                 mouseY <= btn.y + btn.height
             ) {
-                return btn.choice;
+                return {
+                    choice: btn.choice,
+                    time: Date.now()
+                };
             }
         }
         return null;
+    },
+    
+    getEnemyType: function(enemyName) {
+        return enemyName.toLowerCase();
     }
 };
