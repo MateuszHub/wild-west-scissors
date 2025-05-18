@@ -1,11 +1,21 @@
 class Game {
     constructor(canvas) {
+        if (!canvas || !canvas.getContext) {
+            throw new Error('Invalid canvas element provided');
+        }
+
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.scenes = {};
         this.currentScene = null;
         this.player = new Player();
-        this.enemies = [new Bandit(), new Outlaw(), new Gunslinger()];
+        
+        this.enemies = [
+            new Bandit(),
+            new Outlaw(),
+            new Gunslinger()
+        ];
+        
         this.currentEnemyIndex = 0;
         this.previousEnemy = null;
         this.resultText = "";
@@ -24,9 +34,6 @@ class Game {
     startGame() {
         this.player = new Player();
         this.currentEnemyIndex = 0;
-        this.enemies.forEach((enemy, i) => {
-            enemy.health = [15, 25, 30][i];
-        });
         this.changeScene('battle');
     }
 
@@ -44,13 +51,22 @@ class Game {
     }
 
     changeScene(name) {
-        console.log(`Attempting to change to scene: ${name}`);
-        if (this.scenes[name]) {
-            this.currentScene = this.scenes[name];
-            console.log(`Entering scene: ${name}`);
-            this.currentScene.enter();
-            return true;
+        if (!name || typeof name !== 'string') {
+            console.error('Invalid scene name:', name);
+            return false;
         }
+
+        if (this.scenes[name]) {
+            try {
+                this.currentScene = this.scenes[name];
+                this.currentScene.enter();
+                return true;
+            } catch (error) {
+                console.error(`Error entering scene '${name}':`, error);
+                return false;
+            }
+        }
+        
         console.error(`Scene not found: ${name}`);
         return false;
     }
@@ -63,11 +79,8 @@ class Game {
     }
 
     draw() {
-        console.log('Drawing frame');
         if (this.currentScene) {
             this.currentScene.draw(this.ctx);
-        } else {
-            console.error('No current scene to draw');
         }
     }
 

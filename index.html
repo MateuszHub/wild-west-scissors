@@ -24,21 +24,17 @@
   <h1>Wild West Scissors</h1>
   <canvas id="gameCanvas" width="600" height="400"></canvas>
 
-  <!-- Core classes first -->
   <script src="src/core/Scene.js"></script>
   <script src="src/core/Game.js"></script>
   
-  <!-- Entities -->
   <script src="src/entities/Player.js"></script>
   <script src="src/entities/Enemy.js"></script>
   <script src="src/entities/Bandit.js"></script>
   <script src="src/entities/Outlaw.js"></script>
   <script src="src/entities/Gunslinger.js"></script>
   
-  <!-- Utils -->
   <script src="src/utils/Button.js"></script>
   
-  <!-- Scenes (order matters for dependencies) -->
   <script src="src/scenes/MenuScene.js"></script>
   <script src="src/scenes/ChoiceScene.js"></script>
   <script src="src/scenes/BattleScene.js"></script>
@@ -47,21 +43,14 @@
     function initGame() {
       try {
         const canvas = document.getElementById("gameCanvas");
-        if (!canvas) throw new Error('Canvas element not found');
-        
         const game = new Game(canvas);
-        console.log('Game initialized successfully');
 
-        // Setup scenes
         game.addScene('menu', new MenuScene(game));
         game.addScene('battle', new BattleScene(game));
         game.addScene('choice', new ChoiceScene(game));
         game.addScene('gameOver', new GameOverScene(game));
-
-        // Start with menu scene
         game.changeScene('menu');
 
-        // Event listeners
         canvas.addEventListener("click", (e) => {
           const rect = canvas.getBoundingClientRect();
           const mouseX = e.clientX - rect.left;
@@ -73,24 +62,18 @@
           game.handleKey(e.key);
         });
 
-        // Game loop
         let lastTime = 0;
         function gameLoop(timestamp) {
-            try {
-                const deltaTime = timestamp - lastTime;
-                lastTime = timestamp;
-                
-                game.update(deltaTime);
-                game.draw();
-                
-                requestAnimationFrame(gameLoop);
-            } catch (error) {
-                console.error('Game loop error:', error);
-                showError("Game error occurred. Please refresh.");
-            }
+              const deltaTime = timestamp - lastTime;
+              lastTime = timestamp;
+              
+              game.update(deltaTime);
+              game.draw();
+              
+              requestAnimationFrame(gameLoop);
+          
         }
         requestAnimationFrame(gameLoop);
-
       } catch (error) {
         console.error('Game initialization failed:', error);
         showError("Failed to load game. Please check console for details.");

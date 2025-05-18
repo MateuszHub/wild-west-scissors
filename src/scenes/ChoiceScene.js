@@ -9,14 +9,16 @@ class ChoiceScene extends Scene {
     }
 
     draw(ctx) {
+        ctx.clearRect(0, 0, this.game.canvas.width, this.game.canvas.height);
+
         ctx.fillStyle = "#ecf0f1";
         ctx.font = "24px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(`Pokonałeś ${this.game.previousEnemy.name}!`, this.game.canvas.width / 2, 100);
+        ctx.fillText(`You defeated ${this.game.previousEnemy.name}!`, this.game.canvas.width / 2, 100);
         
         ctx.font = "20px Arial";
         ctx.fillText(`Player Health: ${this.game.player.health}%`, this.game.canvas.width / 2, 140);
-        ctx.fillText(`Następny przeciwnik: ${this.game.currentEnemy.name}`, this.game.canvas.width / 2, 170);
+        ctx.fillText(`Next opponent: ${this.game.currentEnemy.name}`, this.game.canvas.width / 2, 170);
 
         this.buttons.forEach(btn => btn.draw(ctx));
     }
@@ -42,4 +44,3 @@ class ChoiceScene extends Scene {
         }
     }
 }
-

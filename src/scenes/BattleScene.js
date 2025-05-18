@@ -2,16 +2,17 @@ class BattleScene extends Scene {
     constructor(game) {
         super(game);
         this.choices = ["rock", "paper", "scissors"];
-        this.labels = {
-            rock: "đźŞ¨ KamieĹ„",
-            paper: "đź“„ Papier",
-            scissors: "âś‚ď¸Ź NoĹĽyce"
-        };
+        this.TIMER_DURATION = 5;
+        this.ANIMATION_INTERVAL = 50;
+        this.ANIMATION_CYCLES = 6;
+        this.BUTTON_WIDTH = 120;
+        this.BUTTON_HEIGHT = 50;
+        this.PLAYER_BUTTONS_Y = 320;
+        this.COMPUTER_BUTTONS_Y = 50;
         this.playerButtons = [];
         this.computerButtons = [];
         this.timeLeft = 5;
         this.timerId = null;
-        this.computerChoice = null;
         this.resultText = "";
         this.roundStartTime = 0;
         this.computerSelection = null;
@@ -22,16 +23,16 @@ class BattleScene extends Scene {
     setupButtons() {
         // Player buttons
         this.playerButtons = [
-            new Button(100, 320, 120, 50, this.labels.rock, "rock"),
-            new Button(240, 320, 120, 50, this.labels.paper, "paper"),
-            new Button(380, 320, 120, 50, this.labels.scissors, "scissors")
+            new Button(100, this.PLAYER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Rock [1]", "rock"),
+            new Button(240, this.PLAYER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Paper [2]", "paper"),
+            new Button(380, this.PLAYER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Scissors [3]", "scissors")
         ];
 
         // Computer buttons (visual only)
         this.computerButtons = [
-            new Button(100, 50, 120, 50, this.labels.rock, null),
-            new Button(240, 50, 120, 50, this.labels.paper, null),
-            new Button(380, 50, 120, 50, this.labels.scissors, null)
+            new Button(100, this.COMPUTER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Rock", "rock"),
+            new Button(240, this.COMPUTER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Paper", "paper"),
+            new Button(380, this.COMPUTER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Scissors", "scissors")
         ];
     }
 
@@ -43,40 +44,41 @@ class BattleScene extends Scene {
         this.roundStartTime = Date.now();
         this.resultText = "";
         this.playerSelection = null;
-        this.computerChoice = null;
         this.computerSelection = null;
-        
-        const enemy = this.game.currentEnemy;
-        this.computerSelection = enemy.selectMove(this.timeLeft);
-        
-        if (this.computerSelection) {
-            setTimeout(() => {
-                this.animateComputerChoice();
-            }, this.computerSelection.selectionTime);
-        }
 
         this.startTimer();
     }
 
+    updateCpuMove() {
+        if (!this.computerSelection) {
+            let timeRemaining = Date.now() - this.roundStartTime + this.TIMER_DURATION;
+            if (timeRemaining <= 0) return;
+            const enemy = this.game.currentEnemy;
+            this.computerSelection = enemy.selectMove(timeRemaining, this.playerSelection == null ? null : this.playerSelection.move);
+        }
+    }
+
     animateComputerChoice() {
-        let animIndex = 0;
-        const animInterval = setInterval(() => {
-            this.computerChoice = this.choices[animIndex % this.choices.length];
-            animIndex++;
-            if (animIndex > 6) {
-                clearInterval(animInterval);
-                this.computerChoice = this.computerSelection.move;
-            }
-        }, 50);
+        if (this.computerSelection) return;
+        for (let i = 0; i < this.computerButtons.length; i++) {
+            this.computerButtons[i].color = "white";
+        }
+        let index = Math.floor(Math.random() * this.computerButtons.length);
+        this.computerButtons[index].color = "#e74c3c";
     }
 
     startTimer() {
         if (this.timerId) clearInterval(this.timerId);
-        this.timeLeft = 5;
+        this.timeLeft = this.TIMER_DURATION;
         this.timerId = setInterval(() => {
-            this.timeLeft--;
-            if (this.timeLeft <= 0) {
-                this.endRound();
+            try {
+                this.timeLeft--;
+                if (this.timeLeft <= 0) {
+                    this.endRound();
+                }
+            } catch (error) {
+                console.error("Timer error:", error);
+                clearInterval(this.timerId);
             }
         }, 1000);
     }
@@ -85,7 +87,8 @@ class BattleScene extends Scene {
         clearInterval(this.timerId);
         const result = this.getResult();
         this.updateHealth(result);
-        
+        this.playerSelection = null;
+        this.computerSelection = null;
         setTimeout(() => {
             if (this.game.player.health <= 0) {
                 this.game.changeScene('gameOver');
@@ -100,32 +103,57 @@ class BattleScene extends Scene {
 
     getResult() {
         if (!this.playerSelection) {
-            return "Czas minÄ…Ĺ‚! PrzegraĹ‚eĹ›!";
-        } else if (!this.computerChoice) {
-            return "WygraĹ‚eĹ›! (Przeciwnik nie wybraĹ‚ ruchu)";
-        } else if (this.playerSelection.action === this.computerChoice) {
-            return "Remis!";
+            return -1;
+        } else if (!this.computerSelection) {
+            return 1;
+        } else if (this.playerSelection.action === this.computerSelection.action) {
+            return 0;
         } else if (
-            (this.playerSelection.action === "rock" && this.computerChoice === "scissors") ||
-            (this.playerSelection.action === "paper" && this.computerChoice === "rock") ||
-            (this.playerSelection.action === "scissors" && this.computerChoice === "paper")
+            (this.playerSelection.action === "rock" && this.computerSelection.action === "scissors") ||
+            (this.playerSelection.action === "paper" && this.computerSelection.action === "rock") ||
+            (this.playerSelection.action === "scissors" && this.computerSelection.action === "paper")
         ) {
-            return "WygraĹ‚eĹ›!";
+            return 1;
         } else {
-            return "PrzegraĹ‚eĹ›!";
+            return -1;
         }
     }
 
     updateHealth(result) {
-        if (result === "PrzegraĹ‚eĹ›!" && this.computerChoice) {
+        if (result == -1) {
             this.game.player.takeDamage(this.computerSelection.damage);
-        } else if (result.startsWith("WygraĹ‚eĹ›!") && this.playerSelection) {
-            this.game.currentEnemy.takeDamage(10);
+        } else if (result == 1) {
+            this.game.currentEnemy.takeDamage(this.game.player.damage);
+        }
+    }
+
+    markComputerSelection() {
+        if (!this.computerSelection) return;
+        for (let i = 0; i < this.computerButtons.length; i++) {
+            if (this.computerButtons[i].action === this.computerSelection.action) {
+                this.computerButtons[i].color = "#e74c3c";
+            } else {
+                this.computerButtons[i].color = "gray";
+            }
+        }
+    }
+
+    markPlayerSelection() {
+        for (let i = 0; i < this.playerButtons.length; i++) {
+            if (this.playerSelection && this.playerButtons[i].action === this.playerSelection.action) {
+                this.playerButtons[i].color = "#aaffbb";
+            } else {
+                this.playerButtons[i].color = "gray";
+            }
         }
     }
 
     draw(ctx) {
-        // Clear canvas
+        this.updateCpuMove();
+        this.animateComputerChoice();
+        this.markComputerSelection();
+        this.markPlayerSelection();
+
         ctx.clearRect(0, 0, this.game.canvas.width, this.game.canvas.height);
 
         // Draw health bars
@@ -137,26 +165,19 @@ class BattleScene extends Scene {
         ctx.font = "20px Arial";
         ctx.textAlign = "center";
         ctx.fillText(this.game.currentEnemy.name, this.game.canvas.width / 2, 30);
-
-        // Draw computer buttons
-        this.computerButtons.forEach(btn => {
-            const isSelected = this.computerChoice === btn.action;
-            const isAnimating = !this.computerChoice && this.computerSelection;
-            btn.color = isSelected ? "#e74c3c" : "#2c3e50";
-            btn.draw(ctx);
-        });
+        this.computerButtons.forEach(btn => { btn.draw(ctx); });
 
         // Draw result
         ctx.fillStyle = "#ecf0f1";
         ctx.font = "24px Arial";
         ctx.fillText(this.resultText, this.game.canvas.width / 2, 180);
         ctx.font = "20px Arial";
-        ctx.fillText(`PozostaĹ‚y czas: ${this.timeLeft}s`, this.game.canvas.width / 2, 220);
+        ctx.fillText(`Time left: ${this.timeLeft}s`, this.game.canvas.width / 2, 220);
 
         // Draw player section
         ctx.fillStyle = "#ecf0f1";
         ctx.font = "20px Arial";
-        ctx.fillText("TwĂłj wybĂłr", this.game.canvas.width / 2, 300);
+        ctx.fillText("Your choice", this.game.canvas.width / 2, 300);
 
         // Draw player buttons
         this.playerButtons.forEach(btn => {
@@ -164,16 +185,16 @@ class BattleScene extends Scene {
         });
     }
 
+
+
     handleClick(x, y) {
+        if(this.playerSelection) return;
         for (let btn of this.playerButtons) {
-            if (btn.isClicked(x, y)) {
+            let timeRemaining = Date.now() - this.roundStartTime + this.TIMER_DURATION;
+            if (btn.isClicked(x, y) && timeRemaining > 0) {
                 this.playerSelection = {
-                    action: btn.action,
-                    time: Date.now()
+                    action: btn.action
                 };
-                if (this.computerChoice || this.timeLeft <= 0) {
-                    this.endRound();
-                }
                 return;
             }
         }

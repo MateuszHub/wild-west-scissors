@@ -6,10 +6,8 @@ class Button {
         this.height = height;
         this.label = label;
         this.action = action;
-        this.color = "#3498db";
-        this.hoverColor = "#2980b9";
+        this.color = "gray";
         this.textColor = "white";
-        this.isHovered = false;
     }
 
     draw(ctx) {
@@ -28,10 +26,6 @@ class Button {
                mouseX <= this.x + this.width && 
                mouseY >= this.y && 
                mouseY <= this.y + this.height;
-    }
-
-    updateHover(mouseX, mouseY) {
-        this.isHovered = this.isClicked(mouseX, mouseY);
     }
 }
 

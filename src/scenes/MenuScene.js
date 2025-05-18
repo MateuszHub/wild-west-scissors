@@ -6,21 +6,28 @@ class MenuScene extends Scene {
 
     draw(ctx) {
         try {
-            console.log('Drawing MenuScene');
+            // Clear canvas first
+            ctx.clearRect(0, 0, this.game.canvas.width, this.game.canvas.height);
+            
+            // Set text styles once
             ctx.fillStyle = "#ecf0f1";
-            ctx.font = "24px Arial";
             ctx.textAlign = "center";
+            
+            // Draw title
+            ctx.font = "24px Arial";
             ctx.fillText("Wild West Scissors", this.game.canvas.width / 2, 80);
             
+            // Draw rules
             ctx.font = "18px Arial";
-            ctx.fillText("Zasady gry:", this.game.canvas.width / 2, 120);
-            ctx.fillText("1. Wybierz kamień, papier lub nożyce", this.game.canvas.width / 2, 150);
-            ctx.fillText("2. Pokonaj 3 przeciwników", this.game.canvas.width / 2, 180);
-            ctx.fillText("3. Każde zwycięstwo zadaje 10 obrażeń", this.game.canvas.width / 2, 210);
+            ctx.fillText("Game Rules:", this.game.canvas.width / 2, 120);
+            ctx.fillText("1. Choose rock, paper or scissors", this.game.canvas.width / 2, 150);
+            ctx.fillText("2. Defeat 3 opponents", this.game.canvas.width / 2, 180);
+            ctx.fillText("3. Each victory deals 10 damage", this.game.canvas.width / 2, 210);
 
+            // Draw button
             this.startButton.draw(ctx);
         } catch (error) {
-            console.error('Error drawing MenuScene:', error);
+            console.error('Menu drawing error:', error);
         }
     }
 
