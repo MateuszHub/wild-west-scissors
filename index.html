@@ -24,271 +24,94 @@
   <h1>Wild West Scissors</h1>
   <canvas id="gameCanvas" width="600" height="400"></canvas>
 
-  <script src="menu.js"></script>
-  <script src="battle.js"></script>
-  <script src="choice.js"></script>
+  <!-- Core classes first -->
+  <script src="src/core/Scene.js"></script>
+  <script src="src/core/Game.js"></script>
+  
+  <!-- Entities -->
+  <script src="src/entities/Player.js"></script>
+  <script src="src/entities/Enemy.js"></script>
+  <script src="src/entities/Bandit.js"></script>
+  <script src="src/entities/Outlaw.js"></script>
+  <script src="src/entities/Gunslinger.js"></script>
+  
+  <!-- Utils -->
+  <script src="src/utils/Button.js"></script>
+  
+  <!-- Scenes (order matters for dependencies) -->
+  <script src="src/scenes/MenuScene.js"></script>
+  <script src="src/scenes/ChoiceScene.js"></script>
+  <script src="src/scenes/BattleScene.js"></script>
+  <script src="src/scenes/GameOverScene.js"></script>
   <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+    function initGame() {
+      try {
+        const canvas = document.getElementById("gameCanvas");
+        if (!canvas) throw new Error('Canvas element not found');
+        
+        const game = new Game(canvas);
+        console.log('Game initialized successfully');
 
-    // Game states
-    const STATES = {
-      START: "start",
-      BATTLE: "battle",
-      POST_BATTLE: "postBattle",
-      OVER: "over"
-    };
+        // Setup scenes
+        game.addScene('menu', new MenuScene(game));
+        game.addScene('battle', new BattleScene(game));
+        game.addScene('choice', new ChoiceScene(game));
+        game.addScene('gameOver', new GameOverScene(game));
 
-    // Enemy queue with varying health
-    const enemies = [
-      { name: "Bandit", health: 15 },
-      { name: "Outlaw", health: 25 },
-      { name: "Gunslinger", health: 30 }
-    ];
+        // Start with menu scene
+        game.changeScene('menu');
 
-    let gameState = STATES.START;
-    let resultText = "";
-    let timeLeft = 5;
-    let timerId = null;
-    let computerChoice = null;
-    let playerHealth = 100;
-    let currentEnemy = 0;
-    let currentRound = 1;
-    let roundsToWin = 0;
-    let roundStartTime;
-    let computerSelection;
-    let playerSelection;
-
-    function getCounterMove(move) {
-        if (move === "rock") return "paper";
-        if (move === "paper") return "scissors";
-        return "rock";
-    }
-
-    function startGame() {
-      gameState = STATES.BATTLE;
-      timeLeft = 5;
-      playerSelection = null;
-      computerChoice = null;
-      currentRound = 1;
-      roundsToWin = Math.ceil(enemies[currentEnemy].health / 10);
-      resultText = `Battle vs ${enemies[currentEnemy].name} (Round ${currentRound}/${roundsToWin}) - Wybierz ruch (1-2-3)`;
-      startTimer();
-      startRound();
-      draw();
-    }
-
-    function startRound() {
-      roundStartTime = Date.now();
-      resultText = ""; // Clear previous result
-      playerSelection = null;
-      computerChoice = null;
-      computerSelection = null;
-      const enemyType = battle.getEnemyType(enemies[currentEnemy].name);
-      computerSelection = battle.getComputerChoice(enemyType, timeLeft);
-      
-      // Schedule computer's selection to happen at random time during the 5s timer
-      const selectionTime = Math.min(computerSelection.selectionTime, 5000);
-      setTimeout(() => {
-        computerChoice = computerSelection.choice;
-        if (computerChoice) {
-          // Animate through all choices before landing on final selection
-          const choices = ["rock", "paper", "scissors"];
-          let animIndex = 0;
-          const animInterval = setInterval(() => {
-            computerChoice = choices[animIndex % choices.length];
-            draw();
-            animIndex++;
-            if (animIndex > 6) { // Cycle through choices twice
-              clearInterval(animInterval);
-              computerChoice = computerSelection.choice;
-              draw();
-            }
-          }, 50); // Faster animation (50ms instead of 150ms)
-        }
-      }, selectionTime);
-
-      // Start 5s timer
-      startTimer();
-    }
-
-    function endRound() {
-      clearInterval(timerId);
-      let result;
-      if (!playerSelection) {
-        result = "Czas minął! Przegrałeś!";
-      } else if (!computerChoice) {
-        result = "Wygrałeś! (Przeciwnik nie wybrał ruchu)";
-      } else {
-        result = battle.getResult(playerSelection.choice, computerChoice);
-      }
-      
-      updateHealth(result);
-      
-      // Always show results for 1 second
-      const cpuMove = computerChoice ? battle.labels[computerChoice] : "Nic nie wybrał";
-      resultText = `Ty: ${battle.labels[playerSelection?.choice || ""]}, ${enemies[currentEnemy].name}: ${cpuMove} — ${result}`;
-      draw();
-      
-      setTimeout(() => {
-        if (playerHealth <= 0) {
-          gameState = STATES.OVER;
-          resultText = "Game Over! Przegrałeś!";
-          draw();
-        } else if (enemies[currentEnemy].health <= 0) {
-          currentEnemy++;
-          if (currentEnemy >= enemies.length) {
-            gameState = STATES.OVER;
-            resultText = "Pokonałeś wszystkich przeciwników!";
-            draw();
-          } else {
-            gameState = STATES.POST_BATTLE;
-            draw();
-          }
-        } else if (enemies[currentEnemy].health > 0) {
-          // Start fresh round after results if enemy still has health
-          playerSelection = null;
-          computerChoice = null;
-          computerSelection = null;
-          currentRound++;
-          resultText = `Battle vs ${enemies[currentEnemy].name} (Round ${currentRound}/${roundsToWin}) - Wybierz ruch (1-2-3)`;
-          startRound();
-        }
-      }, 1000);
-    }
-
-    function updateHealth(result) {
-      if (result === "Przegrałeś!" && computerChoice) {
-        playerHealth -= computerSelection?.damage || 25;
-      } else if (result.startsWith("Wygrałeś!") && playerSelection) {
-        enemies[currentEnemy].health -= 10; // Player always deals 10 damage
-      }
-    }
-
-    function startTimer() {
-      if (timerId) clearInterval(timerId);
-      timeLeft = 5;
-      timerId = setInterval(() => {
-        timeLeft--;
-        if (timeLeft <= 0) {
-          endRound();
-        }
-        draw();
-      }, 1000);
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Draw health bars
-      drawHealthBar(50, 20, 200, 20, playerHealth, "#2ecc71", "Player");
-      if (currentEnemy < enemies.length) {
-        drawHealthBar(350, 20, 200, 20, enemies[currentEnemy].health, "#e74c3c", enemies[currentEnemy].name);
-      }
-
-      if (gameState === STATES.START) {
-        menu.drawStartScreen(ctx);
-      } 
-      else if (gameState === STATES.BATTLE) {
-        battle.drawBattleScreen(ctx, enemies[currentEnemy], resultText, timeLeft, computerChoice);
-      }
-      else if (gameState === STATES.POST_BATTLE) {
-        choice.drawPostBattleScreen(ctx, enemies[currentEnemy-1], playerHealth, enemies[currentEnemy]);
-      }
-      else if (gameState === STATES.OVER) {
-        menu.drawGameOverScreen(ctx, resultText);
-      }
-    }
-
-    function drawHealthBar(x, y, width, height, value, color, label) {
-      ctx.fillStyle = "#333";
-      ctx.fillRect(x, y, width, height);
-      
-      ctx.fillStyle = color;
-      ctx.fillRect(x, y, width * (value / 100), height);
-      
-      ctx.fillStyle = "white";
-      ctx.font = "14px Arial";
-      ctx.textAlign = "left";
-      ctx.fillText(`${label}: ${value}%`, x + 5, y + 15);
-    }
-
-    function handlePostBattleChoice(choice) {
-      if (choice === "next") {
-        startGame();
-      } else if (choice === "heal") {
-        playerHealth = Math.min(100, playerHealth + 30);
-        startGame();
-      } else if (choice === "shop") {
-        // TODO: Implement shop
-        startGame();
-      }
-    }
-
-    canvas.addEventListener("click", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      if (gameState === STATES.START) {
-        // Check start button click
-        if (menu.handleStartClick(mouseX, mouseY)) {
-          startGame();
-        }
-      }
-      else if (gameState === STATES.BATTLE) {
-        const choice = battle.handlePlayerChoice(mouseX, mouseY);
-        if (choice) {
-          playerSelection = {
-            choice: choice.choice,
-            time: Date.now()
-          };
-          // If computer has already selected or timer ran out, complete the round
-          if (computerChoice || timeLeft <= 0) {
-            endRound();
-          }
-        }
-      }
-      else if (gameState === STATES.POST_BATTLE) {
-        const choiceAction = choice.handleChoiceClick(mouseX, mouseY);
-        if (choiceAction) {
-          handlePostBattleChoice(choiceAction);
-        }
-      }
-      else if (gameState === STATES.OVER) {
-        // Reset game
-        gameState = STATES.START;
-        playerHealth = 100;
-        currentEnemy = 0;
-        enemies.forEach((enemy, index) => {
-          enemy.health = [15, 25, 30][index];
+        // Event listeners
+        canvas.addEventListener("click", (e) => {
+          const rect = canvas.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+          game.handleClick(mouseX, mouseY);
         });
-        draw();
-      }
-    });
 
-    document.addEventListener("keydown", (e) => {
-      if (gameState === STATES.BATTLE) {
-        const choices = {
-          "1": "rock",
-          "2": "paper", 
-          "3": "scissors"
-        };
-        if (choices[e.key]) {
-          playerSelection = {
-            choice: choices[e.key],
-            time: Date.now()
-          };
-          // If computer has already selected or timer ran out, complete the round
-          // If computer has already selected or timer ran out, complete the round
-          if (computerChoice || timeLeft <= 0) {
-            endRound();
-          }
+        document.addEventListener("keydown", (e) => {
+          game.handleKey(e.key);
+        });
+
+        // Game loop
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            try {
+                const deltaTime = timestamp - lastTime;
+                lastTime = timestamp;
+                
+                game.update(deltaTime);
+                game.draw();
+                
+                requestAnimationFrame(gameLoop);
+            } catch (error) {
+                console.error('Game loop error:', error);
+                showError("Game error occurred. Please refresh.");
+            }
         }
-      }
-    });
+        requestAnimationFrame(gameLoop);
 
-    draw();
+      } catch (error) {
+        console.error('Game initialization failed:', error);
+        showError("Failed to load game. Please check console for details.");
+      }
+    }
+
+    function showError(message) {
+        const canvas = document.getElementById("gameCanvas");
+        if (canvas) {
+            const ctx = canvas.getContext("2d");
+            ctx.fillStyle = "white";
+            ctx.font = "20px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(message, canvas.width/2, canvas.height/2);
+        } else {
+            document.body.innerHTML = `<div style="color:white;text-align:center">${message}</div>`;
+        }
+    }
+
+    // Wait for DOM to load before initializing game
+    document.addEventListener('DOMContentLoaded', initGame);
   </script>
 </body>
 </html>
