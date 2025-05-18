@@ -5,6 +5,7 @@ class Bandit extends Enemy {
     }
 
     selectMove(timeLeft) {
+        if(timeLeft > Math.random() * 2000 + 500) return null;
         return {
             action: 'rock',
             damage: this.damage

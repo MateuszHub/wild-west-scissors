@@ -3,38 +3,34 @@ class BattleScene extends Scene {
         super(game);
         this.choices = ["rock", "paper", "scissors"];
         this.TIMER_DURATION = 5;
-        this.ANIMATION_INTERVAL = 50;
+        this.ANIMATION_INTERVAL = 100;
         this.ANIMATION_CYCLES = 6;
         this.BUTTON_WIDTH = 120;
         this.BUTTON_HEIGHT = 50;
         this.PLAYER_BUTTONS_Y = 320;
         this.COMPUTER_BUTTONS_Y = 50;
         this.playerButtons = [];
-        this.computerButtons = [];
         this.timeLeft = 5;
         this.timerId = null;
+        this.enemyAnimation = null;
         this.resultText = "";
         this.roundStartTime = 0;
         this.computerSelection = null;
         this.playerSelection = null;
-        this.setupButtons();
-    }
 
-    setupButtons() {
-        // Player buttons
         this.playerButtons = [
             new Button(100, this.PLAYER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Rock [1]", "rock"),
             new Button(240, this.PLAYER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Paper [2]", "paper"),
             new Button(380, this.PLAYER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Scissors [3]", "scissors")
         ];
 
-        // Computer buttons (visual only)
         this.computerButtons = [
             new Button(100, this.COMPUTER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Rock", "rock"),
             new Button(240, this.COMPUTER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Paper", "paper"),
             new Button(380, this.COMPUTER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Scissors", "scissors")
         ];
     }
+
 
     enter() {
         this.startRound();
@@ -45,13 +41,16 @@ class BattleScene extends Scene {
         this.resultText = "";
         this.playerSelection = null;
         this.computerSelection = null;
-
+        for (let i = 0; i < this.computerButtons.length; i++) {
+            this.computerButtons[i].color = "gray";
+        }
+        this.enemyAnimation = setInterval(() => this.animateComputerChoice(), this.ANIMATION_INTERVAL);
         this.startTimer();
     }
 
     updateCpuMove() {
         if (!this.computerSelection) {
-            let timeRemaining = Date.now() - this.roundStartTime + this.TIMER_DURATION;
+            let timeRemaining = this.roundStartTime + this.TIMER_DURATION * 1000 - Date.now();
             if (timeRemaining <= 0) return;
             const enemy = this.game.currentEnemy;
             this.computerSelection = enemy.selectMove(timeRemaining, this.playerSelection == null ? null : this.playerSelection.move);
@@ -61,10 +60,10 @@ class BattleScene extends Scene {
     animateComputerChoice() {
         if (this.computerSelection) return;
         for (let i = 0; i < this.computerButtons.length; i++) {
-            this.computerButtons[i].color = "white";
+            this.computerButtons[i].color = "gray";
         }
         let index = Math.floor(Math.random() * this.computerButtons.length);
-        this.computerButtons[index].color = "#e74c3c";
+        this.computerButtons[index].color = "darkgray";
     }
 
     startTimer() {
@@ -87,8 +86,17 @@ class BattleScene extends Scene {
         clearInterval(this.timerId);
         const result = this.getResult();
         this.updateHealth(result);
-        this.playerSelection = null;
-        this.computerSelection = null;
+        switch (result) {
+            case 1:
+                this.resultText = "You win!";
+                break;
+            case -1:
+                this.resultText = "You lose!";
+                break;
+            default:
+                this.resultText = "Draw";
+        }
+
         setTimeout(() => {
             if (this.game.player.health <= 0) {
                 this.game.changeScene('gameOver');
@@ -98,10 +106,11 @@ class BattleScene extends Scene {
             } else {
                 this.startRound();
             }
-        }, 1000);
+        }, 2000);
     }
 
     getResult() {
+        if (!this.playerSelection && !this.computerSelection) return 0;
         if (!this.playerSelection) {
             return -1;
         } else if (!this.computerSelection) {
@@ -128,7 +137,10 @@ class BattleScene extends Scene {
     }
 
     markComputerSelection() {
-        if (!this.computerSelection) return;
+        if (!this.computerSelection) {
+            return;
+        };
+        clearInterval(this.enemyAnimation);
         for (let i = 0; i < this.computerButtons.length; i++) {
             if (this.computerButtons[i].action === this.computerSelection.action) {
                 this.computerButtons[i].color = "#e74c3c";
@@ -150,7 +162,6 @@ class BattleScene extends Scene {
 
     draw(ctx) {
         this.updateCpuMove();
-        this.animateComputerChoice();
         this.markComputerSelection();
         this.markPlayerSelection();
 
@@ -188,9 +199,9 @@ class BattleScene extends Scene {
 
 
     handleClick(x, y) {
-        if(this.playerSelection) return;
+        if (this.playerSelection) return;
         for (let btn of this.playerButtons) {
-            let timeRemaining = Date.now() - this.roundStartTime + this.TIMER_DURATION;
+            let timeRemaining = this.roundStartTime + this.TIMER_DURATION * 1000 - Date.now();
             if (btn.isClicked(x, y) && timeRemaining > 0) {
                 this.playerSelection = {
                     action: btn.action
