@@ -15,17 +15,19 @@ class Enemy {
         this.health = baseHealth;
         this.maxHealth = baseHealth;
         this.damage = this.BASE_DAMAGE;
+    
+        this.img = new Image();
+        this.img.src = 'enemy.png';
     }
 
-    /**
-     * Abstract method to select enemy's move
-     * @param {number} timeLeft - Time remaining in current round (seconds)
-     * @returns {Object|null} Move object with properties:
-     *   - move: string (rock/paper/scissors)
-     *   - damage: number
-     *   - selectionTime: number (ms delay before choosing)
-     * @throws {Error} If not implemented by subclass
-     */
+   
+    draw(ctx) {
+        ctx.save();
+        ctx.scale(.6,.6);
+        ctx.drawImage(this.img, ctx.canvas.width, ctx.canvas.height - this.img.height + 200);
+        ctx.restore();
+    }
+
     selectMove(timeLeft) {
         throw new Error('selectMove must be implemented by subclass');
     }

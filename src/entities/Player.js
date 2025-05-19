@@ -8,9 +8,18 @@ class Player {
             text: "white"
         };
         this.health = this.INITIAL_HEALTH;
-        this.score = 0;
+        this.gold = 0;
         this.maxHealth = this.MAX_HEALTH;
         this.damage = 12;
+        this.img = new Image();
+        this.img.src = 'player.png';
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.scale(.8,.8);
+        ctx.drawImage(this.img, 0, 1/0.8  * ctx.canvas.height - this.img.height);
+        ctx.restore();
     }
 
     takeDamage(amount) {
@@ -23,12 +32,7 @@ class Player {
     }
 
     heal(amount) {
-        if (typeof amount !== 'number' || amount <= 0) {
-            console.warn('Invalid heal amount:', amount);
-            return this.health;
-        }
         this.health = Math.min(this.maxHealth, this.health + amount);
-        return this.health;
     }
 
     addScore(points) {

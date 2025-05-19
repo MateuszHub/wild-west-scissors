@@ -18,6 +18,9 @@ class BattleScene extends Scene {
         this.computerSelection = null;
         this.playerSelection = null;
 
+        this.bg = new Image();
+        this.bg.src = "bg.png";
+
         this.playerButtons = [
             new Button(100, this.PLAYER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Rock [1]", "rock"),
             new Button(240, this.PLAYER_BUTTONS_Y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, "Paper [2]", "paper"),
@@ -33,6 +36,7 @@ class BattleScene extends Scene {
 
 
     enter() {
+
         this.startRound();
     }
 
@@ -160,12 +164,34 @@ class BattleScene extends Scene {
         }
     }
 
+    drawBackground(ctx) {
+        if (this.bg.complete) ctx.drawImage(this.bg, 0, 0, this.game.canvas.width, this.game.canvas.height);
+    }
+
+    drawTimer(ctx, timeRemaining) {
+        ctx.fillStyle = "#ecf0f1";
+        ctx.font = "24px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(`Time left: ${Math.floor(timeRemaining)}`, this.game.canvas.width / 2, 50);
+    }
+
+
+    drawEnv(ctx) {
+        this.drawBackground(ctx);
+        this.game.player.draw(ctx);
+        this.game.currentEnemy.draw(ctx);
+        let timeRemaining = this.roundStartTime + this.TIMER_DURATION * 1000 - Date.now();
+        this.drawTimer(ctx, timeRemaining);
+    }
+
+
     draw(ctx) {
+        ctx.clearRect(0, 0, this.game.canvas.width, this.game.canvas.height);
+        this.drawEnv(ctx);
         this.updateCpuMove();
         this.markComputerSelection();
         this.markPlayerSelection();
 
-        ctx.clearRect(0, 0, this.game.canvas.width, this.game.canvas.height);
 
         // Draw health bars
         this.game.player.drawHealthBar(ctx, 50, 20, 200, 20);
