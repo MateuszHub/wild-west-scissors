@@ -2,7 +2,7 @@ class Enemy {
     constructor(name, baseHealth) {
         this.HEALTH_BAR_COLORS = {
             background: "#333",
-            fill: "#e74c3c",
+            fill: "#e74c3c", 
             text: "white"
         };
         this.BASE_DAMAGE = 25;
@@ -24,6 +24,7 @@ class Enemy {
         this.knockbackFrames = 0;
         this.originalX = 0;
         this.knockbackAmount = 0;
+        this.shotSound = new Audio('revolver.mp3');
     }
 
     draw(ctx) {
@@ -33,7 +34,7 @@ class Enemy {
         let xOffset = 0;
         if (this.isKnockback) {
             const progress = this.knockbackFrames / 10;
-            xOffset = this.knockbackAmount * Math.sin(progress * Math.PI); 
+            xOffset = this.knockbackAmount * Math.sin(progress * Math.PI);
         }
 
         // Apply damage effects
@@ -67,6 +68,14 @@ class Enemy {
         this.isKnockback = true;
         this.knockbackFrames = 60;
         this.knockbackAmount = 4;
+        
+        // Play shot sound
+        try {
+            this.shotSound.currentTime = .5;
+            this.shotSound.play();
+        } catch (err) {
+            console.warn('Could not play shot sound:', err);
+        }
         
         return this.health > 0;
     }

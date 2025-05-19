@@ -20,6 +20,7 @@ class Player {
         this.knockbackFrames = 0;
         this.originalX = 0;
         this.knockbackAmount = 0;
+        this.shotSound = new Audio('revolver.mp3');
     }
 
     draw(ctx) {
@@ -59,10 +60,6 @@ class Player {
     }
 
     takeDamage(amount) {
-        if (typeof amount !== 'number' || amount <= 0) {
-            console.warn('Invalid damage amount:', amount);
-            return this.health > 0;
-        }
         this.health = Math.max(0, this.health - amount);
         
         // Trigger effects
@@ -73,6 +70,14 @@ class Player {
         this.isKnockback = true;
         this.knockbackFrames = 60;
         this.knockbackAmount = 4;
+        
+        // Play shot sound
+        try {
+            this.shotSound.currentTime = .5;
+            this.shotSound.play();
+        } catch (err) {
+            console.warn('Could not play shot sound:', err);
+        }
         
         return this.health > 0;
     }
