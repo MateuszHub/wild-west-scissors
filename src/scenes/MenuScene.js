@@ -1,7 +1,7 @@
 class MenuScene extends Scene {
     constructor(game) {
         super(game);
-        this.startButton = new Button(240, 250, 120, 50, "Start Game", "start");
+        this.startButton = new Button(this.game.canvas.width / 2 - 60, 450, 120, 50, "Start Game", "start");
     }
 
     draw(ctx) {
@@ -14,15 +14,15 @@ class MenuScene extends Scene {
             ctx.textAlign = "center";
             
             // Draw title
-            ctx.font = "24px Arial";
-            ctx.fillText("Wild West Scissors", this.game.canvas.width / 2, 80);
+            ctx.font = "32px Arial";
+            ctx.fillText("Wild West Scissors", this.game.canvas.width / 2, 240);
             
             // Draw rules
-            ctx.font = "18px Arial";
-            ctx.fillText("Game Rules:", this.game.canvas.width / 2, 120);
-            ctx.fillText("1. Choose rock, paper or scissors", this.game.canvas.width / 2, 150);
-            ctx.fillText("2. Defeat 3 opponents", this.game.canvas.width / 2, 180);
-            ctx.fillText("3. Each victory deals 10 damage", this.game.canvas.width / 2, 210);
+            ctx.font = "24px Arial";
+            ctx.fillText("Game Rules:", this.game.canvas.width / 2, 300);
+            ctx.fillText("1. Choose rock, paper or scissors", this.game.canvas.width / 2, 340);
+            ctx.fillText("2. Defeat 3 opponents", this.game.canvas.width / 2, 380);
+            ctx.fillText("3. Each victory gives you 1 gold", this.game.canvas.width / 2, 420);
 
             // Draw button
             this.startButton.draw(ctx);

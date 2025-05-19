@@ -1,16 +1,18 @@
 class Outlaw extends Enemy {
-    constructor() {
-        super('Outlaw', 25);
-        this.damage = 20;
+    constructor(hp = 25, dmg = 10) {
+        super('Outlaw', hp);
+        this.img = new Image();
+        this.img.src = 'enemy3.png';
+        this.damage = dmg;
+        this.actions = ['rock', 'paper', 'scissors'];
     }
 
     selectMove(timeLeft) {
-        if (timeLeft > 2) return null;
-        const moves = ['rock', 'paper', 'scissors'];
+        if(timeLeft > Math.random() * 300 + 400) return null;
+        let randIdx = Math.floor(Math.random() * 3);
         return {
-            move: moves[Math.floor(Math.random() * moves.length)],
-            damage: this.damage,
-            taunt: "Too slow, partner!"
+            action: this.actions[randIdx],
+            damage: this.damage
         };
     }
 }

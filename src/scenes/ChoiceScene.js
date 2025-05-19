@@ -2,9 +2,9 @@ class ChoiceScene extends Scene {
     constructor(game) {
         super(game);
         this.buttons = [
-            new Button(100, 200, 120, 50, "Next Battle", "next"),
-            new Button(240, 200, 120, 50, "Heal Up", "heal"),
-            new Button(380, 200, 120, 50, "Go to Shop", "shop")
+            new Button(100, 350, 120, 50, "Next Battle", "next"),
+            new Button(240, 350, 120, 50, "Heal (1g)", "heal"),
+            new Button(380, 350, 120, 50, "Upgrade (1g)", "upgrade")
         ];
     }
 
@@ -18,7 +18,8 @@ class ChoiceScene extends Scene {
         
         ctx.font = "20px Arial";
         ctx.fillText(`Player Health: ${this.game.player.health}%`, this.game.canvas.width / 2, 140);
-        ctx.fillText(`Next opponent: ${this.game.currentEnemy.name}`, this.game.canvas.width / 2, 170);
+        ctx.fillText(`Gold: ${this.game.player.gold}`, this.game.canvas.width / 2, 170);
+        ctx.fillText(`Next opponent: ${this.game.currentEnemy.name}`, this.game.canvas.width / 2, 200);
 
         this.buttons.forEach(btn => btn.draw(ctx));
     }
@@ -36,11 +37,15 @@ class ChoiceScene extends Scene {
         if (choice === "next") {
             this.game.changeScene('battle');
         } else if (choice === "heal") {
-            this.game.player.heal(30);
-            this.game.changeScene('battle');
-        } else if (choice === "shop") {
-            // TODO: Implement shop
-            this.game.changeScene('battle');
+            if (this.game.player.gold >= 1) {
+                this.game.player.gold -= 1;
+                this.game.player.heal(10);
+            }
+        } else if (choice === "upgrade") {
+            if (this.game.player.gold >= 1) {
+                this.game.player.gold -= 1;
+                this.game.player.damage += 1;
+            }
         }
     }
 }

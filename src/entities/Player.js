@@ -86,10 +86,6 @@ class Player {
         this.health = Math.min(this.maxHealth, this.health + amount);
     }
 
-    addScore(points) {
-        this.score += points;
-        return this.score;
-    }
 
     drawHealthBar(ctx, x, y, width, height) {
         if (!ctx || typeof x !== 'number' || typeof y !== 'number' || 
@@ -109,9 +105,9 @@ class Player {
         
         // Draw text
         ctx.fillStyle = this.HEALTH_BAR_COLORS.text;
-        ctx.font = "14px Arial";
-        ctx.textAlign = "left";
-        ctx.fillText(`Player: ${Math.round(this.health)}%`, x + 5, y + 15);
+        ctx.font = "20px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(`Player: ${Math.round(this.health)}HP`, x + width / 2, y + 10);
     }
 }
 

@@ -98,9 +98,9 @@ class Enemy {
         
         // Draw text
         ctx.fillStyle = this.HEALTH_BAR_COLORS.text;
-        ctx.font = "14px Arial";
-        ctx.textAlign = "left";
-        ctx.fillText(`${this.name}: ${Math.round(this.health)}%`, x + 5, y + 15);
+        ctx.font = "20px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(`${this.name}: ${Math.round(this.health)}HP`, x + width / 2, y + 10);
     }
 }
 
