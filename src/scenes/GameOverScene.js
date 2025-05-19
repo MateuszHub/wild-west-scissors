@@ -9,10 +9,15 @@ class GameOverScene extends Scene {
         ctx.fillStyle = "#ecf0f1";
         ctx.font = "24px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(this.game.resultText, this.game.canvas.width / 2, 100);
+        
+        if (this.game.player.health <= 0) {
+            ctx.fillText("You lost!", this.game.canvas.width / 2, 200);
+        } else {
+            ctx.fillText("You won!", this.game.canvas.width / 2, 200);
+        }
         
         ctx.font = "20px Arial";
-        ctx.fillText("Click to play again", this.game.canvas.width / 2, 140);
+        ctx.fillText("Click to menu", this.game.canvas.width / 2, 280);
     }
 
     handleClick() {
