@@ -2,7 +2,7 @@ class Enemy {
     constructor(name, baseHealth) {
         this.HEALTH_BAR_COLORS = {
             background: "#333",
-            fill: "#e74c3c", 
+            fill: "#e74c3c",
             text: "white"
         };
         this.BASE_DAMAGE = 25;
@@ -15,17 +15,44 @@ class Enemy {
         this.health = baseHealth;
         this.maxHealth = baseHealth;
         this.damage = this.BASE_DAMAGE;
-    
         this.img = new Image();
         this.img.src = 'enemy.png';
+        this.isBlinking = false;
+        this.blinkFramesRemaining = 0;
+        this.blinkCounter = 0;
+        this.isKnockback = false;
+        this.knockbackFrames = 0;
+        this.originalX = 0;
+        this.knockbackAmount = 0;
     }
 
-   
     draw(ctx) {
         ctx.save();
+        
+        // Apply knockback offset
+        let xOffset = 0;
+        if (this.isKnockback) {
+            const progress = this.knockbackFrames / 10;
+            xOffset = this.knockbackAmount * Math.sin(progress * Math.PI); 
+        }
+
+        // Apply damage effects
+        if (this.isBlinking && this.blinkFramesRemaining-- % 30 < 15) {
+            ctx.filter = 'brightness(200%) saturate(200%) hue-rotate(0deg)';
+        }
+        if(this.blinkFramesRemaining <= 0) {
+          this.isBlinking = false;
+        }
         ctx.scale(.6,.6);
-        ctx.drawImage(this.img, ctx.canvas.width, ctx.canvas.height - this.img.height + 200);
+        ctx.drawImage(this.img, ctx.canvas.width + xOffset, ctx.canvas.height - this.img.height + 200);
         ctx.restore();
+
+        if (this.isKnockback) {
+            this.knockbackFrames--;
+            if (this.knockbackFrames <= 0) {
+                this.isKnockback = false;
+            }
+        }
     }
 
     selectMove(timeLeft) {
@@ -33,11 +60,14 @@ class Enemy {
     }
 
     takeDamage(amount) {
-        if (typeof amount !== 'number' || amount <= 0) {
-            console.warn('Invalid damage amount:', amount);
-            return this.health > 0;
-        }
         this.health = Math.max(0, this.health - amount);
+        this.isBlinking = true;
+        this.blinkFramesRemaining = 60;
+        
+        this.isKnockback = true;
+        this.knockbackFrames = 60;
+        this.knockbackAmount = 4;
+        
         return this.health > 0;
     }
 

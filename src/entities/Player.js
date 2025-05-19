@@ -13,13 +13,49 @@ class Player {
         this.damage = 12;
         this.img = new Image();
         this.img.src = 'player.png';
+        this.isBlinking = false;
+        this.blinkFramesRemaining = 0;
+        this.blinkCounter = 0;
+        this.isKnockback = false;
+        this.knockbackFrames = 0;
+        this.originalX = 0;
+        this.knockbackAmount = 0;
     }
 
     draw(ctx) {
         ctx.save();
+        
+        // Apply knockback offset
+        let xOffset = 0;
+        if (this.isKnockback) {
+            const progress = this.knockbackFrames / 10;
+            xOffset = this.knockbackAmount * Math.sin(progress * Math.PI);
+        }
+
+        // Apply damage effects
+        if (this.isBlinking && this.blinkCounter % 30 < 15) {
+            ctx.filter = 'brightness(200%) saturate(200%) hue-rotate(0deg)';
+        }
+
         ctx.scale(.8,.8);
-        ctx.drawImage(this.img, 0, 1/0.8  * ctx.canvas.height - this.img.height);
+        ctx.drawImage(this.img, xOffset, 1/0.8 * ctx.canvas.height - this.img.height);
         ctx.restore();
+
+        // Update effect states
+        if (this.isBlinking) {
+            this.blinkFramesRemaining--;
+            this.blinkCounter++;
+            if (this.blinkFramesRemaining <= 0) {
+                this.isBlinking = false;
+            }
+        }
+
+        if (this.isKnockback) {
+            this.knockbackFrames--;
+            if (this.knockbackFrames <= 0) {
+                this.isKnockback = false;
+            }
+        }
     }
 
     takeDamage(amount) {
@@ -28,6 +64,16 @@ class Player {
             return this.health > 0;
         }
         this.health = Math.max(0, this.health - amount);
+        
+        // Trigger effects
+        this.isBlinking = true;
+        this.blinkFramesRemaining = 60;
+        this.blinkCounter = 0;
+        
+        this.isKnockback = true;
+        this.knockbackFrames = 60;
+        this.knockbackAmount = 4;
+        
         return this.health > 0;
     }
 
