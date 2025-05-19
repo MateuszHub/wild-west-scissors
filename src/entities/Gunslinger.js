@@ -1,15 +1,18 @@
 class Gunslinger extends Enemy {
-    constructor() {
-        super('Gunslinger', 30);
-        this.damage = 15;
+    constructor(hp = 30, dmg = 15) {
+        super('Gunslinger', hp);
+        this.img = new Image();
+        this.img.src = 'enemy2.png';
+        this.damage = dmg;
+        this.actions = ['rock', 'paper', 'scissors'];
     }
 
     selectMove(timeLeft) {
-        if (timeLeft > 1) return null;
+        if(timeLeft > Math.random() * 200 + 300) return null;
+        let randIdx = Math.floor(Math.random() * 3);
         return {
-            move: Math.random() > 0.7 ? 'scissors' : 'paper',
-            damage: this.damage,
-            taunt: "Draw!"
+            action: this.actions[randIdx],
+            damage: this.damage
         };
     }
 }
